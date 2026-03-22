@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shift Schedule & Days Off Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2234;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #7c3aed;
+    --morning: #f59e0b;
+    --evening: #8b5cf6;
+    --night: #1e40af;
+    --off: #10b981;
+    --postnight: #ec4899;
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --text-bright: #f8fafc;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding-top: 1rem;
+  }
+
+  .header-tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    padding: 0.35rem 1rem;
+    border-radius: 2px;
+    margin-bottom: 1.2rem;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    color: var(--text-bright);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.75rem;
+  }
+
+  h1 span {
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  /* Controls panel */
+  .controls {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    align-items: end;
+  }
+
+  .control-group label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+
+  .control-group input, .control-group select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-bright);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.9rem;
+    padding: 0.7rem 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .control-group input:focus, .control-group select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,212,255,0.08);
+  }
+
+  .control-group select option {
+    background: var(--surface2);
+  }
+
+  .btn-generate {
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    border: none;
+    color: white;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-generate::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.1);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .btn-generate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,212,255,0.25);
+  }
+
+  .btn-generate:hover::after { opacity: 1; }
+  .btn-generate:active { transform: translateY(0); }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+
+  .stat-card:hover { border-color: var(--accent); }
+
+  .stat-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Month sections */
+  .month-section {
+    margin-bottom: 3rem;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .month-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .month-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: -0.01em;
+  }
+
+  .month-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, var(--border), transparent);
+  }
+
+  .month-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent2);
+    background: rgba(255,107,53,0.1);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    border: 1px solid rgba(255,107,53,0.2);
+  }
+
+  /* Calendar grid */
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .day-header {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 0.5rem 0;
+  }
+
+  .day-cell {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: default;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+    min-height: 56px;
+  }
+
+  .day-cell:not(.empty):hover {
+    transform: scale(1.05);
+    z-index: 2;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+
+  .day-cell.empty { background: transparent; }
+
+  .day-cell.morning {
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.25);
+  }
+
+  .day-cell.evening {
+    background: rgba(139,92,246,0.12);
+    border: 1px solid rgba(139,92,246,0.25);
+  }
+
+  .day-cell.night {
+    background: rgba(30,64,175,0.2);
+    border: 1px solid rgba(30,64,175,0.35);
+  }
+
+  .day-cell.off {
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.25);
+  }
+
+  .day-cell.postnight {
+    background: rgba(236,72,153,0.15);
+    border: 2px solid rgba(236,72,153,0.5);
+    box-shadow: 0 0 15px rgba(236,72,153,0.15);
+  }
+
+  .day-cell.today {
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+
+  .day-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    line-height: 1;
+  }
+
+  .day-label {
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  .morning .day-label { color: var(--morning); }
+  .evening .day-label { color: #a78bfa; }
+  .night .day-label { color: #60a5fa; }
+  .off .day-label { color: var(--off); }
+  .postnight .day-label { color: var(--postnight); }
+
+  /* Upcoming off days panel */
+  .upcoming-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .upcoming-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.2rem;
+  }
+
+  .upcoming-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .upcoming-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    background: rgba(236,72,153,0.1);
+    border: 1px solid rgba(236,72,153,0.3);
+    color: var(--postnight);
+    padding: 0.35rem 0.8rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .upcoming-tag.future {
+    background: rgba(16,185,129,0.08);
+    border-color: rgba(16,185,129,0.25);
+    color: var(--off);
+  }
+
+  .tag-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  /* Tooltip */
+  .day-cell[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f172a;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.68rem;
+    font-family: 'Space Mono', monospace;
+    padding: 0.4rem 0.7rem;
+    border-radius: 6px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+  }
+
+  /* Print / export strip */
+  .action-strip {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-sm {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    padding: 0.5rem 1.2rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-sm:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  @media (max-width: 600px) {
+    .calendar-grid { gap: 2px; }
+    .day-cell { min-height: 44px; border-radius: 5px; }
+    .day-num { font-size: 0.72rem; }
+    .day-label { font-size: 0.48rem; }
+    h1 { font-size: 1.8rem; }
+    .controls { padding: 1.2rem; }
+  }
+
+  @media print {
+    body { background: white; color: black; }
+    body::before { display: none; }
+    .controls, .btn-generate, .action-strip { display: none; }
+    .day-cell { border: 1px solid #ccc !important; background: #f9f9f9 !important; }
+    .postnight { background: #fce7f3 !important; }
+    .morning { background: #fef3c7 !important; }
+    .evening { background: #ede9fe !important; }
+    .night { background: #dbeafe !important; }
+    .off { background: #d1fae5 !important; }
+    .day-num, .day-label { color: #111 !important; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-tag">⬡ Duty Rotation Planner</div>
+    <h1>Shift Schedule <span>&amp; Off Days</span></h1>
+    <p class="subtitle">2M · 2E · 2N cycle — post-night off day calculator</p>
+  </header>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Cycle Start Date</label>
+      <input type="date" id="startDate">
+    </div>
+    <div class="control-group">
+      <label>First Shift in Cycle</label>
+      <select id="firstShift">
+        <option value="morning">Morning</option>
+        <option value="evening">Evening</option>
+        <option value="night">Night</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Months to Generate</label>
+      <select id="monthCount">
+        <option value="3">3 Months</option>
+        <option value="6" selected>6 Months</option>
+        <option value="12">12 Months</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>&nbsp;</label>
+      <button class="btn-generate" onclick="generateSchedule()">⚡ Generate Schedule</button>
+    </div>
+  </div>
+
+  <div id="upcomingPanel" class="upcoming-panel" style="display:none">
+    <div class="upcoming-title">// Upcoming Post-Night Off Days</div>
+    <div class="upcoming-list" id="upcomingList"></div>
+  </div>
+
+  <div id="statsBar" class="stats-bar" style="display:none"></div>
+
+  <div id="actionStrip" class="action-strip" style="display:none">
+    <button class="btn-sm" onclick="window.print()">🖨 Print Schedule</button>
+    <button class="btn-sm" onclick="copyOffDates()">📋 Copy Off Dates</button>
+    <button class="btn-sm" onclick="scrollToNext()">⬇ Jump to Next Off Day</button>
+  </div>
+
+  <div id="output">
+    <div class="empty-state">
+      <div class="empty-icon">🌙</div>
+      <div>Set your cycle start date and generate your schedule</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Set default start date to today
+  const today = new Date();
+  document.getElementById('startDate').value = today.toISOString().split('T')[0];
+
+  const SHIFTS = ['morning', 'evening', 'night'];
+  const SHIFT_LABELS = { morning: 'Morning', evening: 'Evening', night: 'Night' };
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  let scheduleData = {}; // date-string -> { type, label }
+  let allOffDays = [];
+
+  function buildSchedule(startDate, firstShift, totalDays) {
+    scheduleData = {};
+    allOffDays = [];
+
+    const shiftOrder = ['morning', 'morning', 'evening', 'evening', 'night', 'night'];
+    const firstIdx = SHIFTS.indexOf(firstShift) * 2; // 0, 2, or 4
+
+    let cycleDay = 0; // position in 8-day cycle (6 work + 2 off)
+    // Re-map: within the cycle of 8: days 0-5 are work, days 6-7 are post-night off
+
+    // We build a "phase" cursor. Each phase = 8 days: 6 shifts then 2 off.
+    // firstShift tells us where in the shift order we begin.
+    let shiftPos = firstIdx; // index into shiftOrder (0-5)
+    let inOffPeriod = false;
+    let offCount = 0;
+
+    const cur = new Date(startDate);
+
+    for (let d = 0; d < totalDays; d++) {
+      const key = dateKey(cur);
+
+      if (inOffPeriod) {
+        scheduleData[key] = { type: 'postnight', label: 'Off' };
+        allOffDays.push(new Date(cur));
+        offCount++;
+        if (offCount >= 2) {
+          inOffPeriod = false;
+          offCount = 0;
+        }
+      } else {
+        const shift = shiftOrder[shiftPos % 6];
+        scheduleData[key] = { type: shift, label: SHIFT_LABELS[shift] };
+        shiftPos++;
+
+        // After every 2nd night shift, trigger off period
+        if (shiftPos % 6 === 0) {
+          // completed a full cycle of 6
+          inOffPeriod = true;
+        }
+      }
+
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+
+  function dateKey(d) {
+    return d.toISOString().split('T')[0];
+  }
+
+  function generateSchedule() {
+    const startVal = document.getElementById('startDate').value;
+    if (!startVal) { alert('Please select a start date.'); return; }
+
+    const firstShift = document.getElementById('firstShift').value;
+    const months = parseInt(document.getElementById('monthCount').value);
+
+    const startDate = new Date(startVal + 'T00:00:00');
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + months);
+    const totalDays = Math.ceil((endDate - startDate) / 86400000);
+
+    buildSchedule(startDate, firstShift, totalDays);
+    renderSchedule(startDate, months);
+    renderStats(months);
+    renderUpcoming();
+
+    document.getElementById('statsBar').style.display = 'grid';
+    document.getElementById('actionStrip').style.display = 'flex';
+    document.getElementById('upcomingPanel').style.display = 'block';
+  }
+
+  function renderSchedule(startDate, months) {
+    const output = document.getElementById('output');
+    output.innerHTML = '';
+
+    // Legend
+    const legend = document.createElement('div');
+    legend.className = 'legend';
+    legend.innerHTML = `
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(245,158,11,0.6)"></div>Morning Shift</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(139,92,246,0.6)"></div>Evening Shift</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(30,64,175,0.7)"></div>Night Shift</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(236,72,153,0.7)"></div>Post-Night Off</div>
+    `;
+    output.appendChild(legend);
+
+    const todayKey = dateKey(today);
+
+    for (let m = 0; m < months; m++) {
+      const cur = new Date(startDate);
+      cur.setMonth(cur.getMonth() + m);
+      const year = cur.getFullYear();
+      const month = cur.getMonth();
+
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+
+      // Count off days this month
+      let offCount = 0;
+      for (let d = 1; d <= lastDay.getDate(); d++) {
+        const k = dateKey(new Date(year, month, d));
+        if (scheduleData[k] && scheduleData[k].type === 'postnight') offCount++;
+      }
+
+      const section = document.createElement('div');
+      section.className = 'month-section';
+      section.style.animationDelay = `${m * 0.07}s`;
+
+      section.innerHTML = `
+        <div class="month-header">
+          <div class="month-name">${MONTH_NAMES[month]} ${year}</div>
+          <div class="month-line"></div>
+          ${offCount > 0 ? `<div class="month-count">${offCount} off day${offCount>1?'s':''}</div>` : ''}
+        </div>
+        <div class="calendar-grid" id="grid-${m}"></div>
+      `;
+      output.appendChild(section);
+
+      const grid = section.querySelector(`#grid-${m}`);
+
+      // Day headers
+      DAY_NAMES.forEach(dn => {
+        const h = document.createElement('div');
+        h.className = 'day-header';
+        h.textContent = dn;
+        grid.appendChild(h);
+      });
+
+      // Empty cells before month starts
+      for (let e = 0; e < firstDay.getDay(); e++) {
+        const empty = document.createElement('div');
+        empty.className = 'day-cell empty';
+        grid.appendChild(empty);
+      }
+
+      // Days
+      for (let d = 1; d <= lastDay.getDate(); d++) {
+        const date = new Date(year, month, d);
+        const k = dateKey(date);
+        const info = scheduleData[k];
+
+        const cell = document.createElement('div');
+        cell.className = 'day-cell' + (info ? ' ' + info.type : '');
+        if (k === todayKey) cell.classList.add('today');
+
+        cell.setAttribute('title', info ? `${MONTH_NAMES[month]} ${d} — ${info.label}` : '');
+
+        cell.innerHTML = `
+          <div class="day-num">${d}</div>
+          ${info ? `<div class="day-label">${info.label}</div>` : ''}
+        `;
+
+        if (info && info.type === 'postnight') {
+          cell.id = cell.id || '';
+          if (!cell.id) cell.id = `off-${k}`;
+        }
+
+        grid.appendChild(cell);
+      }
+    }
+  }
+
+  function renderStats(months) {
+    const counts = { morning: 0, evening: 0, night: 0, postnight: 0 };
+    Object.values(scheduleData).forEach(v => {
+      if (counts[v.type] !== undefined) counts[v.type]++;
+    });
+
+    const bar = document.getElementById('statsBar');
+    bar.innerHTML = `
+      <div class="stat-card">
+        <div class="stat-number" style="color:var(--morning)">${counts.morning}</div>
+        <div class="stat-label">Morning Days</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" style="color:#a78bfa">${counts.evening}</div>
+        <div class="stat-label">Evening Days</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" style="color:#60a5fa">${counts.night}</div>
+        <div class="stat-label">Night Days</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" style="color:var(--postnight)">${counts.postnight}</div>
+        <div class="stat-label">Off Days</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">${Math.floor(counts.postnight / 2)}</div>
+        <div class="stat-label">Off Weekends</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" style="color:var(--accent2)">${months}</div>
+        <div class="stat-label">Months Ahead</div>
+      </div>
+    `;
+  }
+
+  function renderUpcoming() {
+    const todayTime = today.getTime();
+    const upcoming = allOffDays
+      .filter(d => d >= today)
+      .slice(0, 20);
+
+    const list = document.getElementById('upcomingList');
+    list.innerHTML = '';
+
+    if (upcoming.length === 0) {
+      list.innerHTML = '<span style="color:var(--text-dim);font-size:0.8rem;font-family:\'Space Mono\',monospace">No upcoming off days found</span>';
+      return;
+    }
+
+    upcoming.forEach(d => {
+      const tag = document.createElement('div');
+      const diff = Math.ceil((d - today) / 86400000);
+      tag.className = 'upcoming-tag' + (diff <= 7 ? '' : ' future');
+      tag.innerHTML = `
+        <div class="tag-dot"></div>
+        ${d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric', weekday:'short'})}
+        ${diff === 0 ? ' (Today!)' : diff === 1 ? ' (Tomorrow)' : ` (in ${diff}d)`}
+      `;
+      list.appendChild(tag);
+    });
+  }
+
+  function copyOffDates() {
+    const dates = allOffDays
+      .map(d => d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}))
+      .join('\n');
+    navigator.clipboard.writeText(dates).then(() => {
+      alert('Off dates copied to clipboard!');
+    });
+  }
+
+  function scrollToNext() {
+    const todayTime = today.getTime();
+    const next = allOffDays.find(d => d >= today);
+    if (!next) { alert('No upcoming off days in this range.'); return; }
+    const key = `off-${dateKey(next)}`;
+    const el = document.getElementById(key);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+</script>
+</body>
+</html>
